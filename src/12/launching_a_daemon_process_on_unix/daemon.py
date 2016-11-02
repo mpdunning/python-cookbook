@@ -1,12 +1,13 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # daemon.py
 
+from __future__ import print_function
 import os
 import sys
 import atexit
 import signal
 
-def daemonize(pidfile, *, stdin='/dev/null',
+def daemonize(pidfile, stdin='/dev/null',
                           stdout='/dev/null',
                           stderr='/dev/null'):
 
@@ -44,7 +45,7 @@ def daemonize(pidfile, *, stdin='/dev/null',
 
     # Write the PID file
     with open(pidfile,'w') as f:
-        print(os.getpid(),file=f)
+        print(os.getpid(), file=f)
 
     # Arrange to have the PID file removed on exit/signal
     atexit.register(lambda: os.remove(pidfile))
@@ -57,23 +58,25 @@ def daemonize(pidfile, *, stdin='/dev/null',
 
 def main():
     import time
-    sys.stdout.write('Daemon started with pid {}\n'.format(os.getpid()))
+    sys.stdout.write('Daemon started with pid {0}\n'.format(os.getpid()))
     while True:
-        sys.stdout.write('Daemon Alive! {}\n'.format(time.ctime()))
+        sys.stdout.write('Daemon Alive! {0}\n'.format(time.ctime()))
         time.sleep(10)
+        sys.stdout.flush()
 
 if __name__ == '__main__':
     PIDFILE = '/tmp/daemon.pid'
 
     if len(sys.argv) != 2:
-        print('Usage: {} [start|stop]'.format(sys.argv[0]), file=sys.stderr)
+        print('Usage: {0} [start|stop]'.format(sys.argv[0]), file=sys.stderr)
         raise SystemExit(1)
 
     if sys.argv[1] == 'start':
         try:
+            print('Starting daemon...')
             daemonize(PIDFILE,
                       stdout='/tmp/daemon.log',
-                      stderr='/tmp/dameon.log')
+                      stderr='/tmp/daemon.log')
         except RuntimeError as e:
             print(e, file=sys.stderr)
             raise SystemExit(1)
@@ -84,9 +87,16 @@ if __name__ == '__main__':
         if os.path.exists(PIDFILE):
             with open(PIDFILE) as f:
                 os.kill(int(f.read()), signal.SIGTERM)
+                print('Daemon stopped.', file=sys.stdout)
         else:
-            print('Not running', file=sys.stderr)
+            print('Daemon not running.', file=sys.stderr)
             raise SystemExit(1)
+    
+    elif sys.argv[1] == 'status':
+        if os.path.exists(PIDFILE):
+            print('Daemon running.', file=sys.stdout)
+        else:
+            print('Daemon not running.', file=sys.stdout)
 
     else:
         print('Unknown command {!r}'.format(sys.argv[1]), file=sys.stderr)
